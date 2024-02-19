@@ -38,8 +38,6 @@ impl AssistantAgent {
         self
     }
 
-
-
     #[async_recursion::async_recursion(?Send)]
     async fn send(&mut self, recipient: &mut Self, message: impl AsRef<str> + 'static) {
         let model = std::env::var("MODEL").unwrap();
