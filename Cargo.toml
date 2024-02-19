@@ -3,3 +3,6 @@ resolver = "2"
 members = [
     "agents"
 ]
+
+[workspace.dependencies]
+openai = { path = "openai" }

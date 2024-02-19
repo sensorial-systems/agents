@@ -8,7 +8,7 @@ env = dotenv_values(".env")
 config_list = [
     {
         'model': env["MODEL"],
-        'api_key': env["API_KEY"],
+        'api_key': env["OPENAI_KEY"],
     }
 ]
 
