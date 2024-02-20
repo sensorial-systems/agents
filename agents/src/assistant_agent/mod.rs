@@ -5,7 +5,6 @@ use crate::Conversation;
 pub struct AssistantAgent {
     name: String,
     system_message: String,
-    termination_message_checker: Option<Box<dyn Fn(&str) -> bool>>,
     conversation_callback: Option<Box<dyn Fn(&mut Conversation)>>,
     message_history: Vec<ChatCompletionMessage>
 }
@@ -25,11 +24,10 @@ impl AssistantAgent {
     pub fn new(name: impl Into<String>) -> Self {
         let name = name.into();
         let system_message = Default::default();
-        let termination_message_checker = None;
         let message_history = Default::default();
         let conversation_callback = None;
 
-        Self { name, system_message, termination_message_checker, message_history, conversation_callback }
+        Self { name, system_message, message_history, conversation_callback }
     }
 
     pub fn with_system_message(mut self, system_message: impl Into<String>) -> Self {
@@ -39,11 +37,6 @@ impl AssistantAgent {
 
     pub fn with_conversation_callback(mut self, conversation_callback: Option<impl Fn(&mut Conversation) + 'static>) -> Self {
         self.conversation_callback = conversation_callback.map(|x| Box::new(x) as Box<dyn Fn(&mut Conversation)>);
-        self
-    }
-
-    pub fn with_termination_message_checker(mut self, checker: Option<impl Fn(&str) -> bool + 'static>) -> Self {
-        self.termination_message_checker = checker.map(|x| Box::new(x) as Box<dyn Fn(&str) -> bool>);
         self
     }
 
