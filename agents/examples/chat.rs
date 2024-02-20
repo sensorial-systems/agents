@@ -1,20 +1,27 @@
-use agents::AssistantAgent;
+use agents::{Conversation, AssistantAgent};
+
+pub struct Person;
+
+impl Person {
+    pub fn new(name: impl AsRef<str>) -> AssistantAgent {
+        AssistantAgent::new(name.as_ref())
+            .with_system_message(format!("You are a person called {}. You will present yourself and you will ask the other part to present themselves. You will not present yourself as an AI model. You will say TERMINATE only if both you and the other part have presented yourselves.", name.as_ref()))
+            .with_callback(Some(|conversation: &mut Conversation| {
+                if conversation.last_message().contains("TERMINATE") {
+                    conversation.terminate();
+                }
+            }))
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv()?;
     openai::set_key(std::env::var("OPENAI_KEY").unwrap());
 
-    let mut joseph = AssistantAgent::new("Joseph")
-        .with_system_message("You are a person called Joseph. You will present yourself and you will ask the other part to present themselves. You will not present yourself as an AI model. You will say TERMINATE if both of you have presented yourselves.")
-        .with_termination_message_checker(Some(|x: &str| x.contains("TERMINATE")));
-    let mut maria = AssistantAgent::new("Maria")
-        .with_system_message("You are a person called Maria. You will present yourself and you will ask the other part to present themselves. You will not present yourself as an AI model. You will say TERMINATE if both of you have presented yourselves.")
-        .with_termination_message_checker(Some(|x: &str| x.contains("TERMINATE")));
-
-    // Replace it with
-    // joseph.talk_to(&mut maria).await;
-    joseph.initiate_chat(&mut maria, "Hi! What's your name?").await;
+    let mut joseph = Person::new("Joseph");
+    let mut maria = Person::new("Maria");
+    joseph.talk_to(&mut maria).await;
 
     Ok(())
 }
