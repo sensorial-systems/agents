@@ -6,7 +6,7 @@ pub struct AssistantAgent {
     name: String,
     system_message: String,
     termination_message_checker: Option<Box<dyn Fn(&str) -> bool>>,
-    callback: Option<Box<dyn Fn(&mut Conversation)>>,
+    conversation_callback: Option<Box<dyn Fn(&mut Conversation)>>,
     message_history: Vec<ChatCompletionMessage>
 }
 
@@ -27,9 +27,9 @@ impl AssistantAgent {
         let system_message = Default::default();
         let termination_message_checker = None;
         let message_history = Default::default();
-        let callback = None;
+        let conversation_callback = None;
 
-        Self { name, system_message, termination_message_checker, message_history, callback }
+        Self { name, system_message, termination_message_checker, message_history, conversation_callback }
     }
 
     pub fn with_system_message(mut self, system_message: impl Into<String>) -> Self {
@@ -37,8 +37,8 @@ impl AssistantAgent {
         self
     }
 
-    pub fn with_callback(mut self, callback: Option<impl Fn(&mut Conversation) + 'static>) -> Self {
-        self.callback = callback.map(|x| Box::new(x) as Box<dyn Fn(&mut Conversation)>);
+    pub fn with_conversation_callback(mut self, conversation_callback: Option<impl Fn(&mut Conversation) + 'static>) -> Self {
+        self.conversation_callback = conversation_callback.map(|x| Box::new(x) as Box<dyn Fn(&mut Conversation)>);
         self
     }
 
@@ -93,7 +93,7 @@ impl AssistantAgent {
 
         sent_message.role = ChatCompletionMessageRole::Assistant;
         recipient.message_history.push(sent_message);
-        if let Some(callback) = self.callback.as_ref() {
+        if let Some(callback) = self.conversation_callback.as_ref() {
             let last_message = &self.message_history.last().as_ref().unwrap().content;
             let mut context = Conversation::new(&last_message);
             callback(&mut context);
