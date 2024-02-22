@@ -1,8 +1,13 @@
 
 mod function;
 mod conversation;
-mod assistant_agent;
+mod agent;
+mod instruction;
+mod message;
+pub mod models;
 
+pub use message::*;
+pub use instruction::*;
 pub use function::*;
 pub use conversation::*;
-pub use assistant_agent::*;
+pub use agent::*;
