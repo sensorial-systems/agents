@@ -5,4 +5,4 @@ members = [
 ]
 
 [workspace.dependencies]
-openai = { path = "openai" }
+openai = "1.0.0-alpha.13"

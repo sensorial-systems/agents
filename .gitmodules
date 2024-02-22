@@ -1,3 +1,0 @@
-[submodule "openai"]
-	path = openai
-	url = git@github.com:rellfy/openai
