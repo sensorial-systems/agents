@@ -13,6 +13,11 @@ impl<'message> Conversation {
         Self { terminated, history }
     }
 
+    pub fn add_message(&mut self, message: Message) {
+        println!("{}", message);
+        self.history.push(message);
+    }
+
     pub fn history(&self) -> &Vec<Message> {
         &self.history
     }
@@ -21,19 +26,10 @@ impl<'message> Conversation {
         &mut self.history
     }
 
-    pub fn last_message(&self) -> String {
+    pub fn last_message(&self) -> &Message {
         self.history
             .last()
-            .cloned()
-            .map(|m| m.content)
-            .unwrap_or_default()
-    }
-
-    pub fn last_message_mut(&mut self) -> Option<&mut String> {
-        self
-            .history
-            .last_mut()
-            .map(|m| &mut m.content)
+            .unwrap()
     }
 
     pub fn terminate(&mut self) {

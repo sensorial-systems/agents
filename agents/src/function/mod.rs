@@ -3,12 +3,16 @@ mod parameter;
 pub use parameter::*;
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
+use derivative::Derivative;
 
-#[derive(Debug, PartialEq)]
+#[derive(Derivative)]
+#[derivative(Debug, PartialEq)]
 pub struct AgentFunction {
     pub name: String,
     pub description: String,
     pub parameters: Vec<FunctionParameter>,
+    #[derivative(Debug="ignore", PartialEq="ignore")]
+    pub callback: Option<Box<dyn Fn(String) -> String>>
 }
 
 impl AgentFunction {
@@ -16,7 +20,13 @@ impl AgentFunction {
         let name = name.into();
         let description = Default::default();
         let parameters = Default::default();
-        Self { name, description, parameters }
+        let callback = None;
+        Self { name, description, parameters, callback }
+    }
+
+    pub fn with_callback(mut self, callback: impl Fn(String) -> String + 'static) -> Self {
+        self.callback = Some(Box::new(callback));
+        self
     }
 
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
@@ -75,7 +85,8 @@ impl<'de> Deserialize<'de> for AgentFunction {
             v.name = name;
             v
         }).collect();
-        Ok(Self { name, description, parameters })
+        let callback = None;
+        Ok(Self { name, description, parameters, callback })
     }
 }
 

@@ -33,34 +33,45 @@ impl Agent {
 
     pub async fn talk_to(&mut self, recipient: &mut Self) {
         let mut conversation = Conversation::new();
-        self.take_turn_in(&mut conversation).await;
-        self.pass_turn_to(recipient, &mut conversation).await
+        self.talk_to_in(recipient, &mut conversation).await;
     }
 
-    async fn take_turn_in(&mut self, conversation: &mut Conversation) {
-        let message = self.model.complete(&self.instruction, conversation).await;
-        // FIXME: from and to are both self.name
-        println!("{} (to {}):\n{}\n", self.name, self.name, message.content);
-    }
+    async fn talk_to_in(&mut self, recipient: &mut Self, conversation: &mut Conversation) {
+        let mut message = self.model.complete(&self.instruction, conversation).await;
+        message.sign(self, recipient);
+        conversation.add_message(message);
 
-    #[async_recursion::async_recursion(?Send)]
-    async fn pass_turn_to(&mut self, recipient: &mut Self, conversation: &mut Conversation) {
-        recipient.take_turn_in(conversation).await;
         if let Some(notifications) = &self.notifications {
             notifications(conversation);
+        }
+        if let Some(function_call) = conversation.last_message().content.as_function_call() {
+            if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
+                if let Some(callback) = function.callback.as_ref() {
+                    let result = (callback)(function_call.arguments.clone());
+                    let mut message = Message::from(result);
+                    message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                    conversation.add_message(message);
+                    recipient.pass_turn_to(self, conversation).await;
+                }
+            }
         }
         if !conversation.has_terminated() {
             self.pass_turn_to(recipient, conversation).await
         }
     }
 
+    #[async_recursion::async_recursion(?Send)]
+    async fn pass_turn_to(&mut self, recipient: &mut Self, conversation: &mut Conversation) {
+        recipient.talk_to_in(self, conversation).await;
+    }
+
     pub async fn initiate_chat<'a>(&'a mut self, recipient: &mut Self, message: impl Into<Message>) {
         let mut conversation = Conversation::new();
-        let message = message.into();
-        println!("{} (to {}):\n{}\n", self.name, recipient.name, message.content);
-        conversation.history_mut().push(message);
+        let mut message = message.into();
+        message.sign(self, recipient);
+        conversation.add_message(message);
         self.pass_turn_to(recipient, &mut conversation).await;
-    } 
+    }
 }
 
 #[cfg(test)]
@@ -71,7 +82,7 @@ mod tests {
     async fn function_call() -> Result<(), Box<dyn std::error::Error>> {
         dotenv::dotenv()?;
         openai::set_key(std::env::var("OPENAI_KEY").unwrap());
-        let model = std::env::var("MODEL").unwrap();
+        let model = "gpt-4";
 
         let messages = vec![
             ChatCompletionMessage {

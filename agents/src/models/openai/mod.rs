@@ -18,7 +18,7 @@ impl GPT4 {
         "gpt-4"
     }
 
-    pub async fn complete<'a>(&'a self, instruction: &Instruction, conversation: &'a mut Conversation) -> &'a mut Message {
+    pub async fn complete(&self, instruction: &Instruction, conversation: &Conversation) -> Message {
         openai::set_key(self.api_key.clone());
         let messages = std::iter::once(instruction.message())
             .chain(conversation.history().iter().cloned().map(|x| x.into()))
@@ -30,8 +30,7 @@ impl GPT4 {
             .await
             .unwrap();
         let message = chat_completion.choices.first().unwrap().message.clone();
-        conversation.history_mut().push(message.into());
-        conversation.history_mut().last_mut().unwrap()
+        message.into()
     }
 }
 
