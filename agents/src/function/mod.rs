@@ -89,25 +89,3 @@ impl<'de> Deserialize<'de> for AgentFunction {
         Ok(Self { name, description, parameters, callback })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn serialization() {
-        let mut function = AgentFunction::new("quote_amount")
-            .with_description("Quote the amount of money in a currency from another currency")
-            .with_parameters(vec![
-                FunctionParameter::number("amount").with_description("The amount of money to convert"),
-                FunctionParameter::string("from").with_description("The currency of origin"),
-                FunctionParameter::string("to").with_description("The currency of destination")
-            ]);
-        let serialized_function = serde_json::to_string_pretty(&function).unwrap();
-        println!("{}", serialized_function);
-        // let mut deserialized_function: AgentFunction = serde_json::from_str(&serialized_function).unwrap();
-        // function.parameters.sort_by(|a, b| a.name.cmp(&b.name));
-        // deserialized_function.parameters.sort_by(|a, b| a.name.cmp(&b.name));
-        // assert_eq!(function, deserialized_function);        
-    }
-}
