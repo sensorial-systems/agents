@@ -39,6 +39,7 @@ impl Agent {
 
     async fn take_turn_in(&mut self, conversation: &mut Conversation) {
         let message = self.model.complete(&self.instruction, conversation).await;
+        // FIXME: from and to are both self.name
         println!("{} (to {}):\n{}\n", self.name, self.name, message.content);
     }
 
