@@ -1,4 +1,5 @@
 use openai::chat::ChatCompletion;
+use tokio::io::AsyncReadExt;
 
 use crate::{Conversation, Instruction, Message};
 
@@ -72,8 +73,12 @@ impl AsRef<GPT4<'_>> for GPT4 <'_> {
 }
 
 fn prompt_user_for_key() -> String {
-    todo!("prompt user and return String");
-    String::new()   
+    print!("\x1b[0;1;35mPlease enter your OpenAI API key\x1b[0m: ");
+    std::io::stdout().flush();
+    let buf = String::new();
+    const STDIN: std::io::Stdin = std::io::stdin().lock();
+    STDIN.read_line(&mut buf);
+    buf
 }
 
 fn handle_env_var_err<E: std::error::Error>(r: Result<String, E>) -> String {
