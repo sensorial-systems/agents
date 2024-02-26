@@ -1,4 +1,4 @@
-use agents::{AgentFunction, Agent, Conversation, Instruction};
+use agents::{Agent, AgentFunction, Conversation, FunctionCall, Instruction};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -8,8 +8,8 @@ fn exchange_rate(base_currency: &str, quote_currency: &str) -> f32 {
         1.0
     } else if base_currency == "USD" && quote_currency == "EUR" {
         1.1
-    } else if base_currency == "EUR" && quote_currency == "USD" {
-        1.0 / 1.1
+    } else if base_currency == "USD" && quote_currency == "JPY" {
+        150.0
     } else {
         0.0
     }
@@ -30,17 +30,32 @@ fn quote_amount(parameters: QuoteAmountParameters) -> String {
     format!("{} {}", parameters.amount * exchange_rate(&parameters.from, &parameters.to), parameters.to)
 }
 
+#[derive(Serialize, Deserialize, JsonSchema)]
+/// The parameters for the multi_call function
+struct MultiCallParameters {
+    /// The function calls to make
+    calls: Vec<FunctionCall>
+}
+
+fn multicall(parameters: MultiCallParameters) -> String {
+    parameters.calls.iter().map(|call| {
+        let quote_amount_paramters = serde_json::from_value(call.arguments.clone()).unwrap();
+        quote_amount(quote_amount_paramters)
+    }).collect::<Vec<String>>().join(", ")
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
-
     let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
                         AgentFunction::new("quote_amount", quote_amount)
-                            .with_description("Quote the amount of money in a currency from another currency")
+                            .with_description("Quote the amount of money in a currency from another currency"),
+                        AgentFunction::new("multicall", multicall)
+                            .with_description("Call multiple functions at once")
                     ])
             );
 
@@ -51,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 conversation.terminate();
             }
         }));
-    customer.initiate_chat(&mut dealer, "How much is 100 USD in EUR?").await;
+    customer.initiate_chat(&mut dealer, "How much is 100 USD in EUR? And in JPY?").await;
 
     Ok(())
 }
