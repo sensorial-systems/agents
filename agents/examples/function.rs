@@ -30,11 +30,6 @@ fn quote_amount(parameters: QuoteAmountParameters) -> String {
     format!("{} {}", parameters.amount * exchange_rate(&parameters.from, &parameters.to), parameters.to)
 }
 
-fn instruction_quote_amount(arguments: String) -> String {
-    let arguments = serde_json::from_str::<QuoteAmountParameters>(&arguments).unwrap();
-    quote_amount(arguments)
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
@@ -44,8 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_instruction(
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
-                        AgentFunction::new("quote_amount")
-                            .with_callback::<QuoteAmountParameters>(instruction_quote_amount)
+                        AgentFunction::new("quote_amount", quote_amount)
                             .with_description("Quote the amount of money in a currency from another currency")
                     ])
             );

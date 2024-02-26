@@ -46,13 +46,11 @@ impl Agent {
         }
         if let Some(function_call) = conversation.last_message().content.as_function_call() {
             if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                if let Some(callback) = function.callback.as_ref() {
-                    let result = (callback)(function_call.arguments.clone());
-                    let mut message = Message::from(result);
-                    message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
-                    conversation.add_message(message);
-                    recipient.pass_turn_to(self, conversation).await;
-                }
+                let result = (function.callback)(function_call.arguments.clone());
+                let mut message = Message::from(result);
+                message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                conversation.add_message(message);
+                recipient.pass_turn_to(self, conversation).await;
             }
         }
         if !conversation.has_terminated() {
