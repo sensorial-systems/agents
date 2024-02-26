@@ -27,7 +27,7 @@ fn instruction_quote_amount(arguments: String) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = dotenv::var("OPENAI_KEY").expect("Environment variable OPENAI_KEY is not set.");
+    let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
 
     let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
