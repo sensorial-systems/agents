@@ -1,5 +1,5 @@
 use agents::{AgentFunction, Agent, Conversation, FunctionParameter, Instruction};
-use agents::models::GPT4;
+use agents::models::{GPT4, OpenAIKeySrc};
 
 fn exchange_rate(base_currency: &str, quote_currency: &str) -> f32 {
     if base_currency == quote_currency {
@@ -27,8 +27,7 @@ fn instruction_quote_amount(arguments: String) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
-    let model = GPT4::new(api_key);
+    let model = GPT4::new(OpenAIKeySrc::DOTENV);
 
     let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
