@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             .with_description("Quote the amount of money in a currency from another currency"),
                     ])
             );
-    dealer.allows_multicall(false);
+    dealer.allows_multicall(true);
 
     let mut customer = Agent::new(&model, "Customer")
         .with_instruction("You are a customer. You will say \"Thank you\" if every question you asked is answered. You do not know the answers to questions you ask.")
