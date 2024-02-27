@@ -20,7 +20,7 @@ impl Instruction {
 
     pub fn with_multicall(mut self, allow: bool) -> Self {
         if allow {
-            let functions = self.functions.clone();
+            let functions = self.functions.clone(); // FIXME: If with_multicall is called before with_functions, this will be empty.
             self.functions.push(
                 AgentFunction::new("multicall", move |parameters: MultiCallParameters| {
                     let mut output = Vec::new();
