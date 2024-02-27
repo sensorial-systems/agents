@@ -38,26 +38,22 @@ impl Agent {
 
     async fn talk_to_in(&mut self, recipient: &mut Self, conversation: &mut Conversation) {
         let mut message = self.model.complete(&self.instruction, conversation).await;
-        if message.content.is_function_call() {
-            message.sign(self, self);
-            conversation.add_message(message);
-        } else {
-            message.sign(self, recipient);
-            conversation.add_message(message);
-        }
+        message.sign(self, recipient);
+        conversation.add_message(message);
 
         if let Some(notifications) = &self.notifications {
             notifications(conversation);
         }
         if let Some(function_call) = conversation.last_message().content.as_function_call() {
             if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                let result = (function.callback)(function_call.arguments.clone());
+                let result = function.call(function_call.arguments.clone());
                 let mut message = Message::from(result);
                 message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
                 conversation.add_message(message);
                 recipient.pass_turn_to(self, conversation).await;
             }
-        } else if !conversation.has_terminated() {
+        }
+        if !conversation.has_terminated() {
             self.pass_turn_to(recipient, conversation).await
         }
     }
