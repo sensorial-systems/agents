@@ -1,5 +1,4 @@
-
-use agents::models::{GPT4, OpenAIKeySrc};
+use agents::models::GPT4;
 use agents::{Agent, AgentFunction, Conversation, FunctionCall, Instruction};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -38,34 +37,22 @@ struct MultiCallParameters {
     calls: Vec<FunctionCall>
 }
 
-fn multicall(parameters: MultiCallParameters) -> String {
-    parameters.calls.iter().map(|call| {
-        let quote_amount_paramters = serde_json::from_value(call.arguments.clone()).unwrap();
-        quote_amount(quote_amount_paramters)
-    }).collect::<Vec<String>>().join(", ")
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let model = GPT4::new();
+    let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
+    let model = GPT4::new(api_key);
     let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
-                        AgentFunction::new("quote_amount")
-                            .with_callback(instruction_quote_amount)
-                            .with_description("Quote the amount of money in a currency from another currency")
-                            .with_parameters(vec![
-                                FunctionParameter::number("amount").with_description("The amount of money to convert"),
-                                FunctionParameter::string("from").with_description("The currency of origin"),
-                                FunctionParameter::string("to").with_description("The currency of destination")
-                            ])
-                    ]),
-            )
-            .with_multicall(false);
+                        AgentFunction::new("quote_amount", quote_amount)
+                            .with_description("Quote the amount of money in a currency from another currency"),
+                    ])
+            );
+    dealer.allows_multicall(false);
 
     let mut customer = Agent::new(&model, "Customer")
-        .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered. You do not know the answer to your own question.")
+        .with_instruction("You are a customer. You will say \"Thank you\" if every question you asked is answered. You do not know the answers to questions you ask.")
         .with_notifications(Some(|conversation: &mut Conversation| {
             if conversation.last_message().content.as_text().map(|text| text.contains("Thank you")).unwrap_or(false) {
                 conversation.terminate();

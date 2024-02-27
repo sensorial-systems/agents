@@ -29,7 +29,7 @@ impl Agent {
         self
     }
 
-    pub fn with_multicall(mut self, allows_multicall: bool) -> Self {
+    pub fn allows_multicall(&mut self, allows_multicall: bool) -> &Self {
         self.allows_multicall = allows_multicall;
         self
     }
@@ -51,50 +51,31 @@ impl Agent {
         if let Some(notifications) = &self.notifications {
             notifications(conversation);
         }
-        match (conversation.last_message().from == self.name, self.allows_multicall) {
-            (true, false) => {
-                // if last message is from self and multicall is disabled, skip turn if not first
-                if let Some(function_call) = conversation.last_message().content.as_function_call() {
+
+        if self.allows_multicall {
+            if let Some(function_call) = conversation.last_message().content.as_function_call() {
+                if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
+                    let result = (function.callback)(function_call.arguments.clone());
+                    let mut message = Message::from(result);
+                    message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                    conversation.add_message(message);
+                    recipient.pass_turn_to(self, conversation).await;
+                }
+            }
+        } else {
+            if let Some(function_call) = conversation.last_message().content.as_function_call() {
                     if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                        if let Some(callback) = function.callback.as_ref() {
-                            let result = (callback)(function_call.arguments.clone());
-                            let mut message = Message::from(result);
-                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
-                            conversation.add_message(message);
-                            self.pass_turn_to(recipient, conversation).await;
-                        }
+                        let result = (function.callback)(function_call.arguments.clone());
+                        let mut message = Message::from(result);
+                        message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                        conversation.add_message(message);
+                        self.pass_turn_to(recipient, conversation).await;
                     }
-                } else {
+                } else if conversation.last_message().from == self.name {
                     self.pass_turn_to(recipient, conversation).await;
                 }
-            },
-            (false, false) => {
-                if let Some(function_call) = conversation.last_message().content.as_function_call() {
-                    if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                        if let Some(callback) = function.callback.as_ref() {
-                            let result = (callback)(function_call.arguments.clone());
-                            let mut message = Message::from(result);
-                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
-                            conversation.add_message(message);
-                            self.pass_turn_to(recipient, conversation).await;
-                        }
-                    }
-                }
-            },
-            (_, true) => {
-                if let Some(function_call) = conversation.last_message().content.as_function_call() {
-                    if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                        if let Some(callback) = function.callback.as_ref() {
-                            let result = (callback)(function_call.arguments.clone());
-                            let mut message = Message::from(result);
-                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
-                            conversation.add_message(message);
-                            recipient.pass_turn_to(self, conversation).await;
-                        }
-                    }
-                }
-            },
         }
+
         if !conversation.has_terminated() {
             self.pass_turn_to(recipient, conversation).await
         }
