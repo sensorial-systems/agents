@@ -2,10 +2,16 @@ use openai::chat::{ChatCompletionFunctionDefinition, ChatCompletionMessage, Chat
 
 use crate::AgentFunction;
 
+mod functions;
+use functions::*;
+
+mod multicall;
+use multicall::MultiCallParameters;
+
 #[derive(Default)]
 pub struct Instruction {
     pub message: String,
-    pub functions: Vec<AgentFunction>
+    pub functions: FunctionsRegistry,
 }
 
 impl Instruction {
@@ -15,7 +21,27 @@ impl Instruction {
         Self { message, functions }
     }
 
-    pub fn with_functions(mut self, function: impl Into<Vec<AgentFunction>>) -> Self {
+    pub fn with_multicall(mut self, allow: bool) -> Self {
+        if allow {
+            let functions = self.functions.clone(); // FIXME: If with_multicall is called before with_functions, this will be empty.
+            self.functions.push(
+                AgentFunction::new("multicall", move |parameters: MultiCallParameters| {
+                    let mut output = Vec::new();
+                    for call in parameters.calls {
+                        if let Some(function) = functions.iter().find(|f| f.name == call.name) {
+                            output.push((function.callback)(call.arguments));
+                        }
+                    }
+                    output.join(", ")
+                }).with_description("Call multiple functions at once.")
+            );
+        } else {
+            self.functions.retain(|f| f.name != "multicall");
+        }
+        self
+    }
+
+    pub fn with_functions(mut self, function: impl Into<FunctionsRegistry>) -> Self {
         self.functions = function.into();
         self
     }

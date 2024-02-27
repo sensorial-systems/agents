@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use schemars::{gen::SchemaSettings, JsonSchema};
 use serde::{de::DeserializeOwned, Serialize};
 use derivative::Derivative;
 
-#[derive(Derivative, Serialize)]
+#[derive(Clone, Derivative, Serialize)]
 #[derivative(Debug, PartialEq)]
 pub struct AgentFunction {
     pub name: String,
@@ -10,7 +12,7 @@ pub struct AgentFunction {
     pub parameters: serde_json::Value,
     #[serde(skip)]
     #[derivative(Debug="ignore", PartialEq="ignore")]
-    pub callback: Box<dyn Fn(serde_json::Value) -> String>
+    pub callback: Rc<dyn Fn(serde_json::Value) -> String>
 }
 
 impl AgentFunction {
@@ -30,7 +32,7 @@ impl AgentFunction {
             let arguments = serde_json::from_value::<Parameter>(arguments).unwrap();
             callback(arguments)
         };
-        let callback = Box::new(callback);
+        let callback = Rc::new(callback);
 
         Self { name, description, parameters, callback }
     }
@@ -38,5 +40,9 @@ impl AgentFunction {
     pub fn with_description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
         self
+    }
+
+    pub fn call(&self, arguments: serde_json::Value) -> String {
+        (self.callback)(arguments)
     }
 }
