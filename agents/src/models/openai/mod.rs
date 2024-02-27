@@ -1,56 +1,88 @@
 use openai::chat::ChatCompletion;
-use tokio::io::AsyncReadExt;
+pub mod api_key;
+use api_key::*;
 
 use crate::{Conversation, Instruction, Message};
 
-// The lifetimes in this module tie the OpenAI API key to the GPT4 instance's scope.
 #[derive(Clone)]
-pub enum OpenAIKeySrc <'a> {
-    DOTENV,
-    SYSENV,
-    USERIN,
-    CUSTOM(&'a str),
+pub struct GPT4 {
+    api_src: OpenAIKeySrc,
+    cached_src: Option<OpenAIKeySrc>,
+    cached_key: String,
+    fallback: Option<OpenAIKeySrc>,
+    human_fallback_enabled: bool,
 }
 
-#[derive(Clone)]
-pub struct GPT4 <'a> {
-    pub api_key: OpenAIKeySrc <'a>
-}
-
-impl GPT4 <'_>{
+impl GPT4 {
     pub fn new() -> Self {
-        Self { api_key: OpenAIKeySrc::USERIN }
+        // default sets no fallback and gets key from .env file
+        Self { 
+            api_src: OpenAIKeySrc::DOTENV,
+            cached_src: None,
+            cached_key: String::new(),
+            fallback: None,
+            human_fallback_enabled: false,
+        }
     }
 
-    pub fn key_src(&mut self, key_src: OpenAIKeySrc) -> &Self {
-        self.api_key = key_src;
+    pub fn with_key(&mut self, key_src: OpenAIKeySrc) -> &Self {
+        self.api_src = key_src;
         self
     }
 
-    fn get_key(&self) -> String {
-        match self.api_key {
+    pub fn fallback_key(&mut self, fallback: Option<OpenAIKeySrc>) -> &Self {
+        self.fallback = fallback;
+        self
+    } 
+
+    pub fn human_fallback(&mut self, human_fallback: bool) -> &Self {
+        self.human_fallback_enabled = human_fallback;
+        self
+    }
+
+    fn get_key(&mut self) -> String {
+        // These 11 lines create a duplicate of the api_src flag that only gets the API key when
+        // it changes.
+        if let Some(src) = self.cached_src.clone() {    // if `cached_src` is set &&
+            if src == self.api_src {                    // if `api_key` isn't different from its last value
+                return self.cached_key.clone();         // return the cached value
+            }
+        }
+        self.cached_src = Some(self.api_src.clone());   // copy the changed src location to the `cached_src`
+
+        // then cache the key into `cached_key` and return it
+        self.cached_key = match self.api_src.clone() {
             OpenAIKeySrc::DOTENV => {
-                handle_env_var_err(
-                    dotenv::var("OPENAI_API_KEY")
+                handle_fallback(
+                    dotenv::var("OPENAI_API_KEY"),
+                    self.fallback.clone(),
+                    self.human_fallback_enabled,
                 )
             },
             OpenAIKeySrc::SYSENV => {
-                handle_env_var_err(
-                    std::env::var("OPENAI_API_KEY")
+                handle_fallback(
+                    std::env::var("OPENAI_API_KEY"), 
+                    self.fallback.clone(),
+                    self.human_fallback_enabled,
                 )
             },
             OpenAIKeySrc::USERIN => {
-                prompt_user_for_key()
+                handle_fallback(
+                    prompt_user_for_key(),
+                    self.fallback.clone(),
+                    self.human_fallback_enabled,
+                )
             },
-            OpenAIKeySrc::CUSTOM(s) => String::from(s),
-        }
+            OpenAIKeySrc::CUSTOM(s) => s,
+        };
+        self.cached_key.clone()
     }
 
     pub fn name(&self) -> &str {
         "gpt-4"
     }
 
-    pub async fn complete(&self, instruction: &Instruction, conversation: &Conversation) -> Message {
+    pub async fn complete(&mut self, instruction: &Instruction, conversation: &Conversation) -> Message {
         openai::set_key(self.get_key());
         let messages = std::iter::once(instruction.message())
             .chain(conversation.history().iter().cloned().map(|x| x.into()))
@@ -66,24 +98,8 @@ impl GPT4 <'_>{
     }
 }
 
-impl AsRef<GPT4<'_>> for GPT4 <'_> {
+impl AsRef<GPT4> for GPT4 {
     fn as_ref(&self) -> &GPT4 {
         self
     }
-}
-
-fn prompt_user_for_key() -> String {
-    print!("\x1b[0;1;35mPlease enter your OpenAI API key\x1b[0m: ");
-    std::io::stdout().flush();
-    let buf = String::new();
-    const STDIN: std::io::Stdin = std::io::stdin().lock();
-    STDIN.read_line(&mut buf);
-    buf
-}
-
-fn handle_env_var_err<E: std::error::Error>(r: Result<String, E>) -> String {
-    r.unwrap_or_else(|e| {
-        eprintln!("\x1b[0;1;31mError:\x1b[0m {}", e);
-        prompt_user_for_key()
-    })
 }

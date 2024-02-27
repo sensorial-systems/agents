@@ -27,7 +27,7 @@ fn instruction_quote_amount(arguments: String) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let model = GPT4::new(OpenAIKeySrc::DOTENV);
+    let model = GPT4::new();
 
     let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
