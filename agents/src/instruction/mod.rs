@@ -3,7 +3,7 @@ use openai::chat::{ChatCompletionFunctionDefinition, ChatCompletionMessage, Chat
 use crate::AgentFunction;
 
 mod functions;
-use functions::*;
+pub use functions::*;
 
 mod multicall;
 use multicall::MultiCallParameters;
@@ -23,13 +23,12 @@ impl Instruction {
 
     pub fn with_multicall(mut self, allow: bool) -> Self {
         if allow {
-            let functions = self.functions.clone(); // FIXME: If with_multicall is called before with_functions, this will be empty.
             self.functions.push(
-                AgentFunction::new("multicall", move |parameters: MultiCallParameters| {
+                AgentFunction::new("multicall", move |registry: &FunctionsRegistry, parameters: MultiCallParameters| {
                     let mut output = Vec::new();
                     for call in parameters.calls {
-                        if let Some(function) = functions.iter().find(|f| f.name == call.name) {
-                            output.push((function.callback)(call.arguments));
+                        if let Some(result) = registry.call(&call) {
+                            output.push(result);
                         }
                     }
                     output.join(", ")

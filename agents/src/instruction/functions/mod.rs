@@ -27,7 +27,7 @@ impl FunctionsRegistry {
             .iter()
             .find(|x| x.name == function_call.name)
             .map(|function|
-                function.call(function_call.arguments.clone())
+                function.call(self, function_call.arguments.clone())
             )
     }
 }

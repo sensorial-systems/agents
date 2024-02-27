@@ -1,4 +1,4 @@
-use agents::{Agent, AgentFunction, Conversation, Instruction};
+use agents::{Agent, AgentFunction, Conversation, FunctionsRegistry, Instruction};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -26,7 +26,7 @@ struct QuoteAmountParameters {
     to: String
 }
 
-fn quote_amount(parameters: QuoteAmountParameters) -> String {
+fn quote_amount(_registry: &FunctionsRegistry, parameters: QuoteAmountParameters) -> String {
     format!("{} {}", parameters.amount * exchange_rate(&parameters.from, &parameters.to), parameters.to)
 }
 
