@@ -1,10 +1,15 @@
 use enum_as_inner::EnumAsInner;
 use openai::chat::ChatCompletionFunctionCall;
+use schemars::JsonSchema;
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+/// A function call
 pub struct FunctionCall {
+    /// The name of the function
     pub name: String,
-    pub arguments: String
+    /// The arguments to the function
+    pub arguments: serde_json::Value
 }
 
 #[derive(Clone, EnumAsInner)]
@@ -16,7 +21,7 @@ pub enum Content {
 impl From<ChatCompletionFunctionCall> for FunctionCall {
     fn from(call: ChatCompletionFunctionCall) -> Self {
         let name = call.name;
-        let arguments = call.arguments;
+        let arguments = serde_json::from_str(&call.arguments).unwrap();
         Self { name, arguments }
     }
 }
@@ -24,7 +29,7 @@ impl From<ChatCompletionFunctionCall> for FunctionCall {
 impl From<FunctionCall> for ChatCompletionFunctionCall {
     fn from(call: FunctionCall) -> Self {
         let name = call.name;
-        let arguments = call.arguments;
+        let arguments = serde_json::to_string(&call.arguments).unwrap();
         Self { name, arguments }
     }
 }

@@ -61,12 +61,10 @@ impl From<&Instruction> for ChatCompletionMessage {
 impl From<&Instruction> for Vec<openai::chat::ChatCompletionFunctionDefinition> {
     fn from(instruction: &Instruction) -> Self {
         instruction.functions.iter().map(|f| {
-            let function = serde_json::to_value(&f).unwrap();
-            let parameters = function.get("parameters").unwrap().clone();
             ChatCompletionFunctionDefinition {
                 name: f.name.clone(),
                 description: Some(f.description.clone()),
-                parameters: Some(parameters)
+                parameters: Some(f.parameters.clone())
             }
         }).collect()
     }
