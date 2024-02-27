@@ -51,7 +51,6 @@ impl Agent {
         if let Some(notifications) = &self.notifications {
             notifications(conversation);
         }
-
         match (conversation.last_message().from == self.name, self.allows_multicall) {
             (true, false) => {
                 // if last message is from self and multicall is disabled, skip turn if not first

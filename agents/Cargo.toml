@@ -16,5 +16,6 @@ serde_json = "1"
 enum-as-inner = "0.6"
 derivative = "2.2"
 dotenv = "0.15"
+schemars = "0.8"
 
 [dev-dependencies]
