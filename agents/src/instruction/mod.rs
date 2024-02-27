@@ -2,13 +2,16 @@ use openai::chat::{ChatCompletionFunctionDefinition, ChatCompletionMessage, Chat
 
 use crate::AgentFunction;
 
+mod functions;
+use functions::*;
+
 mod multicall;
 use multicall::MultiCallParameters;
 
 #[derive(Default)]
 pub struct Instruction {
     pub message: String,
-    pub functions: Vec<AgentFunction>
+    pub functions: FunctionsRegistry,
 }
 
 impl Instruction {
@@ -38,7 +41,7 @@ impl Instruction {
         self
     }
 
-    pub fn with_functions(mut self, function: impl Into<Vec<AgentFunction>>) -> Self {
+    pub fn with_functions(mut self, function: impl Into<FunctionsRegistry>) -> Self {
         self.functions = function.into();
         self
     }
