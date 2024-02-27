@@ -4,7 +4,8 @@ pub struct Agent {
     name: String,
     model: GPT4,
     instruction: Instruction,
-    notifications: Option<Box<dyn Fn(&mut Conversation)>>
+    notifications: Option<Box<dyn Fn(&mut Conversation)>>,
+    allows_multicall: bool,
 }
 
 impl Agent {
@@ -13,8 +14,9 @@ impl Agent {
         let name = name.into();
         let instruction = Default::default();
         let notifications = None;
+        let allows_multicall = true;
 
-        Self { model, name, instruction, notifications }
+        Self { model, name, instruction, notifications, allows_multicall }
     }
 
     pub fn with_notifications(mut self, notifications: Option<impl Fn(&mut Conversation) + 'static>) -> Self {
@@ -24,6 +26,11 @@ impl Agent {
 
     pub fn with_instruction(mut self, instruction: impl Into<Instruction>) -> Self {
         self.instruction = instruction.into();
+        self
+    }
+
+    pub fn with_multicall(mut self, allows_multicall: bool) -> Self {
+        self.allows_multicall = allows_multicall;
         self
     }
 
@@ -44,16 +51,50 @@ impl Agent {
         if let Some(notifications) = &self.notifications {
             notifications(conversation);
         }
-        if let Some(function_call) = conversation.last_message().content.as_function_call() {
-            if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
-                if let Some(callback) = function.callback.as_ref() {
-                    let result = (callback)(function_call.arguments.clone());
-                    let mut message = Message::from(result);
-                    message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
-                    conversation.add_message(message);
-                    recipient.pass_turn_to(self, conversation).await;
+
+        match (conversation.last_message().from == self.name, self.allows_multicall) {
+            (true, false) => {
+                // if last message is from self and multicall is disabled, skip turn if not first
+                if let Some(function_call) = conversation.last_message().content.as_function_call() {
+                    if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
+                        if let Some(callback) = function.callback.as_ref() {
+                            let result = (callback)(function_call.arguments.clone());
+                            let mut message = Message::from(result);
+                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                            conversation.add_message(message);
+                            self.pass_turn_to(recipient, conversation).await;
+                        }
+                    }
+                } else {
+                    self.pass_turn_to(recipient, conversation).await;
                 }
-            }
+            },
+            (false, false) => {
+                if let Some(function_call) = conversation.last_message().content.as_function_call() {
+                    if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
+                        if let Some(callback) = function.callback.as_ref() {
+                            let result = (callback)(function_call.arguments.clone());
+                            let mut message = Message::from(result);
+                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                            conversation.add_message(message);
+                            self.pass_turn_to(recipient, conversation).await;
+                        }
+                    }
+                }
+            },
+            (_, true) => {
+                if let Some(function_call) = conversation.last_message().content.as_function_call() {
+                    if let Some(function) = self.instruction.functions.iter().find(|x| x.name == function_call.name) {
+                        if let Some(callback) = function.callback.as_ref() {
+                            let result = (callback)(function_call.arguments.clone());
+                            let mut message = Message::from(result);
+                            message.sign(self, self); // From should be an executor agent. It, for example, could be a non-LLM agent.
+                            conversation.add_message(message);
+                            recipient.pass_turn_to(self, conversation).await;
+                        }
+                    }
+                }
+            },
         }
         if !conversation.has_terminated() {
             self.pass_turn_to(recipient, conversation).await

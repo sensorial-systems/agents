@@ -41,11 +41,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 FunctionParameter::string("from").with_description("The currency of origin"),
                                 FunctionParameter::string("to").with_description("The currency of destination")
                             ])
-                    ])
-            );
+                    ]),
+            )
+            .with_multicall(false);
 
     let mut customer = Agent::new(&model, "Customer")
-        .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.")
+        .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered. You do not know the answer to your own question.")
         .with_notifications(Some(|conversation: &mut Conversation| {
             if conversation.last_message().content.as_text().map(|text| text.contains("Thank you")).unwrap_or(false) {
                 conversation.terminate();
