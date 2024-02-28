@@ -4,6 +4,8 @@ use schemars::{gen::SchemaSettings, JsonSchema};
 use serde::{de::DeserializeOwned, Serialize};
 use derivative::Derivative;
 
+use crate::FunctionsRegistry;
+
 #[derive(Clone, Derivative, Serialize)]
 #[derivative(Debug, PartialEq)]
 pub struct AgentFunction {
@@ -12,11 +14,11 @@ pub struct AgentFunction {
     pub parameters: serde_json::Value,
     #[serde(skip)]
     #[derivative(Debug="ignore", PartialEq="ignore")]
-    pub callback: Rc<dyn Fn(serde_json::Value) -> String>
+    pub callback: Rc<dyn Fn(&FunctionsRegistry, serde_json::Value) -> String>
 }
 
 impl AgentFunction {
-    pub fn new<Parameter: JsonSchema + DeserializeOwned>(name: impl Into<String>, callback: impl Fn(Parameter) -> String + 'static) -> Self {
+    pub fn new<Parameter: JsonSchema + DeserializeOwned>(name: impl Into<String>, callback: impl Fn(&FunctionsRegistry, Parameter) -> String + 'static) -> Self {
         let name = name.into();
         let description = Default::default();
 
@@ -28,9 +30,9 @@ impl AgentFunction {
         let parameters = serde_json::to_value(schema).unwrap();
 
 
-        let callback = move |arguments: serde_json::Value| {
+        let callback = move |registry: &FunctionsRegistry, arguments: serde_json::Value| {
             let arguments = serde_json::from_value::<Parameter>(arguments).unwrap();
-            callback(arguments)
+            callback(registry, arguments)
         };
         let callback = Rc::new(callback);
 
@@ -42,7 +44,7 @@ impl AgentFunction {
         self
     }
 
-    pub fn call(&self, arguments: serde_json::Value) -> String {
-        (self.callback)(arguments)
+    pub fn call(&self, registry: &FunctionsRegistry, arguments: serde_json::Value) -> String {
+        (self.callback)(registry, arguments)
     }
 }
