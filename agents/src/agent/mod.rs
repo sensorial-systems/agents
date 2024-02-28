@@ -38,7 +38,11 @@ impl Agent {
 
     async fn talk_to_in(&mut self, recipient: &mut Self, conversation: &mut Conversation) {
         let mut message = self.model.complete(&self.instruction, conversation).await;
-        message.sign(self, recipient);
+        if message.content.is_function_call() {
+            message.sign(self, self);
+        } else {
+            message.sign(self, recipient);
+        }
         conversation.add_message(message);
 
         if let Some(notifications) = &self.notifications {
@@ -51,8 +55,7 @@ impl Agent {
                 conversation.add_message(message);
                 recipient.pass_turn_to(self, conversation).await;
             }
-        }
-        if !conversation.has_terminated() {
+        } else if !conversation.has_terminated() {
             self.pass_turn_to(recipient, conversation).await
         }
     }
