@@ -1,4 +1,4 @@
-use agents::{Agent, AgentFunction, Conversation, FunctionsRegistry, Instruction};
+use agents::{Agent, AgentFunction, Conversation, FunctionsRegistry, Instruction, MultiCall};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -39,8 +39,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
                         AgentFunction::new("quote_amount", quote_amount)
-                            .with_description("Quote the amount of money in a currency from another currency")
-                    ]).with_multicall(true)
+                            .with_description("Quote the amount of money in a currency from another currency"),
+                        MultiCall.into()
+                    ])
             );
 
     let mut customer = Agent::new(&model, "Customer")

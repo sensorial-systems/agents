@@ -1,12 +1,12 @@
 use openai::chat::{ChatCompletionFunctionDefinition, ChatCompletionMessage, ChatCompletionMessageRole};
 
-use crate::AgentFunction;
-
 mod functions;
 pub use functions::*;
 
 mod multicall;
-use multicall::MultiCallParameters;
+pub use multicall::*;
+
+use crate::AgentFunction;
 
 #[derive(Default)]
 pub struct Instruction {
@@ -21,27 +21,8 @@ impl Instruction {
         Self { message, functions }
     }
 
-    pub fn with_multicall(mut self, allow: bool) -> Self {
-        if allow {
-            self.functions.push(
-                AgentFunction::new("multicall", move |registry: &FunctionsRegistry, parameters: MultiCallParameters| {
-                    let mut output = Vec::new();
-                    for call in parameters.calls {
-                        if let Some(result) = registry.call(&call) {
-                            output.push(result);
-                        }
-                    }
-                    output.join(", ")
-                }).with_description("Call multiple functions at once.")
-            );
-        } else {
-            self.functions.retain(|f| f.name != "multicall");
-        }
-        self
-    }
-
-    pub fn with_functions(mut self, function: impl Into<FunctionsRegistry>) -> Self {
-        self.functions = function.into();
+    pub fn with_functions<Function: Into<AgentFunction>>(mut self, function: impl IntoIterator<Item = Function>) -> Self {
+        self.functions.registry.extend(function.into_iter().map(|f| f.into()));
         self
     }
 
