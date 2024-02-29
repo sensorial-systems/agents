@@ -1,4 +1,9 @@
-use crate::{models::GPT4, Agent, Communicator, Content, Conversation, Instruction, Message};
+pub mod models;
+mod instruction;
+
+pub use instruction::*;
+
+use crate::{models::GPT4, Agent, Communicator, Content, Conversation, Message};
 use shrinkwraprs::Shrinkwrap;
 
 #[derive(Shrinkwrap)]
