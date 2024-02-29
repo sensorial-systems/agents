@@ -47,9 +47,8 @@ impl Communicator for AutoAgent {
         self.agent.name()
     }
 
-    async fn send(&mut self, recipient: &mut dyn Communicator, conversation: &mut Conversation, mut message: Message) {
-        message.sign(self, recipient);
-        conversation.add_message(message);
+    async fn send(&mut self, recipient: &mut dyn Communicator, conversation: &mut Conversation, content: Content) {
+        conversation.add_message(Message::new(self, recipient, content));
         recipient.receive(self, conversation).await;
     }
 
@@ -58,24 +57,18 @@ impl Communicator for AutoAgent {
             notifications(conversation);
         }
         if !conversation.has_terminated() {
-            let message = self.model.complete(&self.instruction, conversation).await;
-            match &message.content {
+            let content = self.model.complete(&self.instruction, conversation).await;
+            match &content {
                 Content::FunctionCall(function_call) => {
+                    conversation.add_message(Message::new(self, self, content.clone()));
                     if let Some(result) = self.instruction.functions.call(&function_call) {
-                        {
-                            let mut message = message.clone();
-                            message.sign(self, self);
-                            conversation.add_message(message.clone());            
-                        }
-                        let mut message = Message::from(result);
-                        message.sign(self, self);
-                        conversation.add_message(message);
-                        let message = self.model.complete(&self.instruction, conversation).await;
-                        self.send(sender, conversation, message).await;
+                        conversation.add_message(Message::new(self, self, result));
+                        let content = self.model.complete(&self.instruction, conversation).await;
+                        self.send(sender, conversation, content.into()).await;
                     }
                 }
                 Content::Text(_) => {
-                    self.send(sender, conversation, message).await;
+                    self.send(sender, conversation, content.into()).await;
                 }
             }
         }

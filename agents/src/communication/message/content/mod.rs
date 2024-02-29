@@ -1,5 +1,5 @@
 use enum_as_inner::EnumAsInner;
-use openai::chat::ChatCompletionFunctionCall;
+use openai::chat::{ChatCompletionFunctionCall, ChatCompletionMessage};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 
@@ -39,6 +39,18 @@ impl std::fmt::Display for Content {
         match self {
             Content::Text(text) => write!(f, "{}", text),
             Content::FunctionCall(call) => write!(f, "{}: {}", call.name, call.arguments)
+        }
+    }
+}
+
+impl From<ChatCompletionMessage> for Content {
+    fn from(message: ChatCompletionMessage) -> Self {
+        if let Some(content) = message.content {
+            Content::Text(content)
+        } else if let Some(function_call) = message.function_call {
+            Content::FunctionCall(function_call.into())
+        } else {
+            Content::Text(Default::default())
         }
     }
 }

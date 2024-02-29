@@ -1,6 +1,6 @@
 use openai::chat::ChatCompletion;
 
-use crate::{Conversation, Instruction, Message};
+use crate::{Content, Conversation, Instruction};
 
 
 #[derive(Clone)]
@@ -18,7 +18,7 @@ impl GPT4 {
         "gpt-4"
     }
 
-    pub async fn complete(&self, instruction: &Instruction, conversation: &Conversation) -> Message {
+    pub async fn complete(&self, instruction: &Instruction, conversation: &Conversation) -> Content {
         openai::set_key(self.api_key.clone());
         let messages = std::iter::once(instruction.message())
             .chain(conversation.history().iter().cloned().map(|x| x.into()))
@@ -29,8 +29,8 @@ impl GPT4 {
             .create()
             .await
             .unwrap();
-        let message = chat_completion.choices.first().unwrap().message.clone();
-        message.into()
+        let content = chat_completion.choices.first().unwrap().message.clone();
+        content.into()
     }
 }
 
