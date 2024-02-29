@@ -1,4 +1,4 @@
-use agents::{AgentFunction, Communication, Conversation, ConversationalAgent, FunctionsRegistry, Instruction, MultiCall};
+use agents::{AgentFunction, Communication, Conversation, AutoAgent, FunctionsRegistry, Instruction, MultiCall};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -34,7 +34,7 @@ fn quote_amount(_registry: &FunctionsRegistry, parameters: QuoteAmountParameters
 async fn function() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
-    let mut dealer = ConversationalAgent::new(&model, "Currency Exchange Dealer")
+    let mut dealer = AutoAgent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
@@ -44,7 +44,7 @@ async fn function() -> Result<(), Box<dyn std::error::Error>> {
                     ])
             );
 
-    let mut customer = ConversationalAgent::new(&model, "Customer")
+    let mut customer = AutoAgent::new(&model, "Customer")
         .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.")
         .with_notifications(Some(|conversation: &mut Conversation| {
             if let Some(last_message) = conversation.last_message() {

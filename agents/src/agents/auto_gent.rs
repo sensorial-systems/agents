@@ -2,14 +2,14 @@ use crate::{models::GPT4, Agent, Communication, Content, Conversation, Instructi
 use shrinkwraprs::Shrinkwrap;
 
 #[derive(Shrinkwrap)]
-pub struct ConversationalAgent {
+pub struct AutoAgent {
     #[shrinkwrap(main_field)]
     agent: Agent,
     model: GPT4,
     instruction: Instruction,
 }
 
-impl ConversationalAgent {
+impl AutoAgent {
     pub fn new(model: impl AsRef<GPT4>, name: impl Into<String>) -> Self {
         let model = model.as_ref().clone();
         let agent = Agent::new(name);
@@ -29,7 +29,7 @@ impl ConversationalAgent {
     }
 }
 
-impl ConversationalAgent {
+impl AutoAgent {
     pub async fn talk_to(&mut self, recipient: &mut Self) {
         let mut conversation = Conversation::new();
         self.receive(recipient, &mut conversation).await;
@@ -37,7 +37,7 @@ impl ConversationalAgent {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Communication for ConversationalAgent {
+impl Communication for AutoAgent {
     async fn send(&mut self, recipient: &mut Self, conversation: &mut Conversation, message: impl Into<Message>) {
         let mut message = message.into();
         message.sign(self, recipient);

@@ -1,10 +1,10 @@
-use agents::{models::GPT4, ConversationalAgent, Conversation};
+use agents::{models::GPT4, AutoAgent, Conversation};
 
 pub struct Person;
 
 impl Person {
-    pub fn new(model: &GPT4, name: impl AsRef<str>) -> ConversationalAgent {
-        ConversationalAgent::new(model.clone(), name.as_ref())
+    pub fn new(model: &GPT4, name: impl AsRef<str>) -> AutoAgent {
+        AutoAgent::new(model.clone(), name.as_ref())
             .with_instruction(format!("You are a person called {}. You will present yourself and you will ask the other part to present themselves. You will not present yourself as an AI model. You will say TERMINATE only if both you and the other part have presented yourselves.", name.as_ref()))
             .with_notifications(Some(|conversation: &mut Conversation| {
                 if let Some(last_message) = conversation.last_message() {
