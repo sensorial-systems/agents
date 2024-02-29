@@ -14,11 +14,11 @@ pub struct AgentFunction {
     pub parameters: serde_json::Value,
     #[serde(skip)]
     #[derivative(Debug="ignore", PartialEq="ignore")]
-    pub callback: Rc<dyn Fn(&FunctionsRegistry, serde_json::Value) -> String>
+    pub callback: Rc<dyn Fn(&FunctionsRegistry, serde_json::Value) -> String + Send + Sync>
 }
 
 impl AgentFunction {
-    pub fn new<Parameter: JsonSchema + DeserializeOwned>(name: impl Into<String>, callback: impl Fn(&FunctionsRegistry, Parameter) -> String + 'static) -> Self {
+    pub fn new<Parameter: JsonSchema + DeserializeOwned>(name: impl Into<String>, callback: impl Fn(&FunctionsRegistry, Parameter) -> String + 'static + Send + Sync) -> Self {
         let name = name.into();
         let description = Default::default();
 

@@ -1,13 +1,15 @@
 
 mod function;
-mod conversation;
-mod agent;
+mod conversation; // TODO: Move it to communication.
+mod agents;
 mod instruction;
-mod message;
+mod message; // TODO: Move it to communication.
+mod communication;
 pub mod models;
 
+pub use communication::*;
 pub use message::*;
 pub use instruction::*;
 pub use function::*;
 pub use conversation::*;
-pub use agent::*;
+pub use agents::*;

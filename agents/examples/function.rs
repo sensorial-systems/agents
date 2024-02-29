@@ -1,4 +1,4 @@
-use agents::{Agent, AgentFunction, Conversation, FunctionsRegistry, Instruction, MultiCall};
+use agents::{AgentFunction, Communication, Conversation, ConversationalAgent, FunctionsRegistry, Instruction, MultiCall};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -6,10 +6,10 @@ use serde::{Serialize, Deserialize};
 fn exchange_rate(base_currency: &str, quote_currency: &str) -> f32 {
     if base_currency == quote_currency {
         1.0
-    } else if base_currency == "USD" && quote_currency == "EUR" {
-        1.1
-    } else if base_currency == "USD" && quote_currency == "JPY" {
-        150.0
+    } else if base_currency == "BRL" && quote_currency == "EUR" {
+        0.2
+    } else if base_currency == "BRL" && quote_currency == "JPY" {
+        30.0
     } else {
         0.0
     }
@@ -34,7 +34,7 @@ fn quote_amount(_registry: &FunctionsRegistry, parameters: QuoteAmountParameters
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
-    let mut dealer = Agent::new(&model, "Currency Exchange Dealer")
+    let mut dealer = ConversationalAgent::new(&model, "Currency Exchange Dealer")
             .with_instruction(
                 Instruction::new("You are a currency exchange dealer.")
                     .with_functions(vec![
@@ -44,14 +44,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ])
             );
 
-    let mut customer = Agent::new(&model, "Customer")
+    let mut customer = ConversationalAgent::new(&model, "Customer")
         .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.")
         .with_notifications(Some(|conversation: &mut Conversation| {
-            if conversation.last_message().content.as_text().map(|text| text.contains("Thank you")).unwrap_or(false) {
-                conversation.terminate();
-            }
+            if let Some(last_message) = conversation.last_message() {
+                if last_message.content.as_text().map(|text| text.contains("Thank you")).unwrap_or(false) {
+                    conversation.terminate();
+                }
+            } 
         }));
-    customer.initiate_chat(&mut dealer, "How much is 100 USD in EUR? And in JPY?").await;
+    let mut conversation = Conversation::new();
+    customer.send(&mut dealer, &mut conversation, "How much is 100 BRL in EUR? And in JPY?").await;
 
     Ok(())
 }

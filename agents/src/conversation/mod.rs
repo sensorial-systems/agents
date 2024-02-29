@@ -26,10 +26,9 @@ impl<'message> Conversation {
         &mut self.history
     }
 
-    pub fn last_message(&self) -> &Message {
+    pub fn last_message(&self) -> Option<&Message> {
         self.history
             .last()
-            .unwrap()
     }
 
     pub fn terminate(&mut self) {
