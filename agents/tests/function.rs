@@ -35,17 +35,14 @@ async fn function() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
     let mut dealer = AutoAgent::new(&model, "Currency Exchange Dealer")
-            .with_instruction(
-                Instruction::new("You are a currency exchange dealer.")
-                    .with_functions(vec![
-                        AgentFunction::new("quote_amount", quote_amount)
-                            .with_description("Quote the amount of money in a currency from another currency"),
-                        MultiCall.into()
-                    ])
-            );
-
-    let mut customer = AutoAgent::new(&model, "Customer")
-        .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.")
+        .with_instruction(
+            Instruction::new("You are a currency exchange dealer.")
+                .with_functions(vec![
+                    AgentFunction::new("quote_amount", quote_amount)
+                        .with_description("Quote the amount of money in a currency from another currency"),
+                    MultiCall.into()
+                ])
+        )
         .with_notifications(Some(|conversation: &mut Conversation| {
             if let Some(last_message) = conversation.last_message() {
                 if last_message.content.as_text().map(|text| text.contains("Thank you")).unwrap_or(false) {
@@ -53,8 +50,11 @@ async fn function() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } 
         }));
+    
+
+    let mut customer = AutoAgent::new(&model, "Customer")
+        .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.");
     let mut conversation = Conversation::new();
     customer.send(&mut dealer, &mut conversation, "How much is 100 BRL in EUR? And in JPY?").await;
-
     Ok(())
 }

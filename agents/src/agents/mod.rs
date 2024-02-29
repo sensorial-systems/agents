@@ -1,5 +1,5 @@
 mod agent;
-mod auto_gent;
+mod auto_agent;
 
 pub use agent::*;
-pub use auto_gent::*;
+pub use auto_agent::*;

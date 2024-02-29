@@ -50,11 +50,15 @@ impl Communication for AutoAgent {
             notifications(conversation);
         }
         if !conversation.has_terminated() {
-            // FIXME: This message isn't being added in the conversation.
             let message = self.model.complete(&self.instruction, conversation).await;
-            match message.content {
+            match &message.content {
                 Content::FunctionCall(function_call) => {
                     if let Some(result) = self.instruction.functions.call(&function_call) {
+                        {
+                            let mut message = message.clone();
+                            message.sign(self, self);
+                            conversation.add_message(message.clone());            
+                        }
                         let mut message = Message::from(result);
                         message.sign(self, self);
                         conversation.add_message(message);
