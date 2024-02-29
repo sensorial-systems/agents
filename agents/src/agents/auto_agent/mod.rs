@@ -10,6 +10,7 @@ use shrinkwraprs::Shrinkwrap;
 pub struct AutoAgent {
     #[shrinkwrap(main_field)]
     agent: Agent,
+    executor: Agent,
     model: GPT4,
     instruction: Instruction,
 }
@@ -18,9 +19,10 @@ impl AutoAgent {
     pub fn new(model: impl AsRef<GPT4>, name: impl Into<String>) -> Self {
         let model = model.as_ref().clone();
         let agent = Agent::new(name);
+        let executor = Agent::new("Function Executor");
         let instruction = Default::default();
 
-        Self { model, agent, instruction }
+        Self { model, agent, executor, instruction }
     }
 
     pub fn with_notifications(mut self, notifications: Option<impl Fn(&mut Conversation) + 'static>) -> Self {
@@ -60,9 +62,9 @@ impl Communicator for AutoAgent {
             let content = self.model.complete(&self.instruction, conversation).await;
             match &content {
                 Content::FunctionCall(function_call) => {
-                    conversation.add_message(Message::new(self, self, content.clone()));
+                    conversation.add_message(Message::new(self, &self.executor, content.clone()));
                     if let Some(result) = self.instruction.functions.call(&function_call) {
-                        conversation.add_message(Message::new(self, self, result));
+                        conversation.add_message(Message::new(&self.executor, self, result));
                         let content = self.model.complete(&self.instruction, conversation).await;
                         self.send(sender, conversation, content.into()).await;
                     }
