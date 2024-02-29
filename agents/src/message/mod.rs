@@ -2,7 +2,7 @@ mod content;
 pub use content::*;
 
 use openai::chat::{ChatCompletionMessage, ChatCompletionMessageRole};
-use crate::Agent;
+use crate::Communicator;
 
 #[derive(Clone)]
 pub struct Message {
@@ -24,7 +24,7 @@ impl From<String> for Content {
 }
 
 impl Message {
-    pub fn sign(&mut self, from: &Agent, to: &Agent) {
+    pub fn sign(&mut self, from: &dyn Communicator, to: &dyn Communicator) {
         self.from = from.name().into();
         self.to = to.name().into();
     }

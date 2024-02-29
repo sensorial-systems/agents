@@ -1,4 +1,4 @@
-use agents::{AgentFunction, Communication, Conversation, AutoAgent, FunctionsRegistry, Instruction, MultiCall};
+use agents::{AgentFunction, Communicator, Conversation, AutoAgent, FunctionsRegistry, Instruction, MultiCall};
 use agents::models::GPT4;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
@@ -55,6 +55,6 @@ async fn function() -> Result<(), Box<dyn std::error::Error>> {
     let mut customer = AutoAgent::new(&model, "Customer")
         .with_instruction("You are a customer. You will say \"Thank you\" if the question you asked is answered.");
     let mut conversation = Conversation::new();
-    customer.send(&mut dealer, &mut conversation, "How much is 100 BRL in EUR? And in JPY?").await;
+    customer.send(&mut dealer, &mut conversation, "How much is 100 BRL in EUR? And in JPY?".into()).await;
     Ok(())
 }
