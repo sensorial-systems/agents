@@ -1,4 +1,8 @@
-use crate::{Conversation, Message};
+mod conversation;
+mod message;
+
+pub use conversation::*;
+pub use message::*;
 
 #[async_trait::async_trait(?Send)]
 pub trait Communicator {
