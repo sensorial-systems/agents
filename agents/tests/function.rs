@@ -30,8 +30,8 @@ fn quote_amount(_registry: &FunctionsRegistry, parameters: QuoteAmountParameters
     format!("{} {}", parameters.amount * exchange_rate(&parameters.from, &parameters.to), parameters.to)
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn function() -> Result<(), Box<dyn std::error::Error>> {
     let api_key = dotenv::var("OPENAI_API_KEY").expect("Environment variable OPENAI_KEY is not set.");
     let model = GPT4::new(api_key);
     let mut dealer = ConversationalAgent::new(&model, "Currency Exchange Dealer")

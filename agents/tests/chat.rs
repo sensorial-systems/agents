@@ -16,8 +16,8 @@ impl Person {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn chat() -> Result<(), Box<dyn std::error::Error>> {
     let model = GPT4::new(dotenv::var("OPENAI_API_KEY").unwrap());
 
     let mut joseph = Person::new(&model, "Joseph");
