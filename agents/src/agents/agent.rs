@@ -1,6 +1,6 @@
 use std::pin::Pin;
 
-use crate::{Communicator, Content, Conversation};
+use crate::{Communicator, Content, Conversation, Message};
 
 pub struct Agent {
     name: String,
@@ -30,9 +30,11 @@ impl Communicator for Agent {
         self.name()
     }
 
-    async fn send(&mut self, _recipient: &mut dyn Communicator, _conversation: &mut Conversation, _content: Content) {
+    async fn send(&mut self, _recipient: &mut dyn Communicator, _conversation: &mut Conversation, _content: Content) -> Option<Message> {
+        None
     }
 
-    async fn receive(&mut self, _sender: &mut dyn Communicator, _conversation: &mut Conversation) {
+    async fn receive(&mut self, _sender: &mut dyn Communicator, _conversation: &mut Conversation) -> Option<Message> {
+        None
     }
 }
