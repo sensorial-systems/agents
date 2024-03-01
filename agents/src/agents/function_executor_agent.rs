@@ -17,11 +17,6 @@ impl Communicator for FunctionExecutorAgent {
         "Function Executor"
     }
 
-    async fn send(&mut self, recipient: &mut dyn Communicator, conversation: &mut Conversation, content: Content) -> Option<Message> {
-        conversation.add_message(Message::new(self, recipient, content));
-        recipient.receive(self, conversation).await
-    }
-
     async fn receive(&mut self, sender: &mut dyn Communicator, conversation: &mut Conversation) -> Option<Message> {
         if let Content::FunctionCall(function_call) = &conversation.last_message().unwrap().content {
             if let Some(result) = self.registry.as_ref().and_then(|registry| registry.call(&function_call)) {

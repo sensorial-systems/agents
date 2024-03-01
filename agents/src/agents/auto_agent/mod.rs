@@ -3,7 +3,7 @@ mod instruction;
 
 pub use instruction::*;
 
-use crate::{models::GPT4, Agent, Communicator, Content, Conversation, FunctionExecutorAgent, Message};
+use crate::{models::GPT4, Agent, Communicator, Conversation, FunctionExecutorAgent, Message};
 use shrinkwraprs::Shrinkwrap;
 
 #[derive(Shrinkwrap)]
@@ -49,11 +49,6 @@ impl AutoAgent {
 impl Communicator for AutoAgent {
     fn name(&self) -> &str {
         self.agent.name()
-    }
-
-    async fn send(&mut self, recipient: &mut dyn Communicator, conversation: &mut Conversation, content: Content) -> Option<Message> {
-        conversation.add_message(Message::new(self, recipient, content));
-        recipient.receive(self, conversation).await
     }
 
     async fn receive(&mut self, sender: &mut dyn Communicator, conversation: &mut Conversation) -> Option<Message> {
